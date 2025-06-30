@@ -1,0 +1,121 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api  # 注意前缀的斜杠，代表根路径下的子路径
+
+spring:
+  resources:
+    add-mappings: true # 值为false时，不会将静态资源的URL路径添加到映射中
+  # 解决springboot配置@ControllerAdvice不能捕获Exception问题
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+  # 配置日期格式化
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss #时间戳统一转换为指定格式
+    time-zone: GMT+8 #时区修改为东8区
+    default-property-inclusion: non_null #null时不序列化
+
+  datasource:
+    #配置基本属性
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 批量修改会出现;报错 加上&allowMultiQueries=true即可解决
+    url: jdbc:mysql://localhost:3306/pzh_blog?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    #使用druid连接池
+    type: com.alibaba.druid.pool.DruidDataSource
+    #druid相关配置
+    druid:
+      # 连接保活配置
+      keep-alive: true  # 开启连接保活检测
+      validation-query: SELECT 1  # 必须配置简单有效的检测SQL
+      test-while-idle: true  # 空闲时检测连接
+      test-on-borrow: true  # 借用时检测
+      time-between-eviction-runs-millis: 30000  # 检测周期改为30秒 一个连接在池中最小生存的时间
+      min-evictable-idle-time-millis: 600000  # 最小空闲时间改为10分钟 间隔多久进行一次检测，检测需要关闭的空闲连接
+
+      # 连接泄漏检测
+      remove-abandoned: true
+      remove-abandoned-timeout: 300  # 300秒未关闭的连接会被回收
+      log-abandoned: true  # 记录泄漏日志
+
+      #监控统计拦截的filters
+      filters: stat
+      #配置初始化大小/最小/最大
+      initial-size: 5
+      min-idle: 10
+      max-active: 20
+      #获取连接等待超时时间
+      max-wait: 60000
+      test-on-return: false
+      #打开PSCache，并指定每个连接上PSCache的大小。oracle设为true，mysql设为false。分库分表较多推荐设置为false
+      pool-prepared-statements: false
+      max-pool-prepared-statement-per-connection-size: 20
+
+  redis:
+    database: 0 #使用第0个数据库，一共默认有16个(0-15)
+    host: 127.0.0.1
+    port: 6379
+    password: 123456
+    timeout: 60s #连接超时时间毫秒(类型为Duration，添加秒)
+    lettuce:
+      pool:
+        max-active: 16 #连接池最大连接数（使用负值表示没有限制）
+        max-idle: 8 #连接池中的最大空闲连接
+        min-idle: 4 #连接池中的最小空闲连接
+        max-wait: 120s #最大建立连接等待时间。如果超过此时间将接到异常。设为-1表示无限制。
+        time-between-eviction-runs: 30s #空闲链接检测线程检测周期毫秒（负值表示不检测）(类型为Duration，添加秒)
+
+mybatis-plus:
+  configuration:
+    # 开启驼峰命名规则映射 例如实体类userName字段关联表中user_name的列
+    map-underscore-to-camel-case: true
+    auto-mapping-behavior: full
+    #输出sql到控制台
+    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    #如果查询结果中包含空值的列，则 MyBatis 在映射的时候，不会映射这个字段
+    call-setters-on-nulls: true
+  type-aliases-package: cn.pzhdv.blog.entity  # 实体类所在包
+  mapper-locations: classpath*:mapper/**/*Mapper.xml   # xml文件所在位置
+  global-config:
+    # 逻辑删除配置
+    db-config:
+      # 表名前缀，全局配置后可省略@TableName("tb_user")配置
+      # table-prefix: tb_
+      # 逻辑删除 在实体类上的对应字段上使用这个注解 @TableLogic
+      #配置逻辑删除字段为0是未删除
+      logic-not-delete-value: 0
+      #配置逻辑删除字段为1是删除
+      logic-delete-value: 1
+
+knife4j:
+  # 开启增强配置
+  enable: true
+  # 开启Swagger的Basic认证功能,默认是false
+  basic:
+    enable: true
+    # Basic认证用户名
+    username: pzh
+    # Basic认证密码
+    password: pzh
+
+
+swagger:
+  config:
+    groupName: 个人博客接口
+    title: 后端 API 接口文档
+    description: 这是pzh博客后端接口
+    name: 潘宗晖
+    url: https://pzhdv.cn
+    serviceUrl: https://pzhdv.cn #组织url
+    email: 1939673715@qq.com
+    version: 1.0
+    basePackage: cn.pzhdv.blog.controller
+    enableSwagger: true
+
+
+# 日志目录
+logging:
+  file:
+    path: logs/
