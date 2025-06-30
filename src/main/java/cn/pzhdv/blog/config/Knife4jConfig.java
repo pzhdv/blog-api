@@ -117,7 +117,7 @@ public class Knife4jConfig {
                 .build()
 
                 /* 设置安全模式，swagger可以设置访问token */
-                .securitySchemes(securitySchemes())// 安全模式
+                //.securitySchemes(securitySchemes())// 安全模式
                 .securityContexts(securityContexts())// 安全上下文
                 .pathMapping("/");
     }
