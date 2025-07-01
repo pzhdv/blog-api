@@ -1,0 +1,18 @@
+# 生产环境配置
+spring:
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://127.0.0.1:3306/pzh_blog?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+      username: root
+      password: root
+
+      remove-abandoned: false  # 核心建议：生产环境关闭
+      # remove-abandoned-timeout: 300  # 无需配置
+      log-abandoned: false     # 或根据需要选择性开启
+
+  redis:
+    database: 0 #使用第0个数据库，一共默认有16个(0-15)
+    host: 127.0.0.1
+    port: 6379
+    password: 123456

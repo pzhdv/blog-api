@@ -41,7 +41,7 @@ public class JobExperienceController {
         // 先从 Redis 中获取缓存数据
         List<JobExperience> list = redisUtils.get(RedisKey.JOB_EXPERIENCE_CATCH_KEY,List.class);
         if (list == null) {
-            list = service.list();
+            list = service.queryJobExperienceList();
             redisUtils.set(RedisKey.JOB_EXPERIENCE_CATCH_KEY, list);
         }
         return ResultUtil.ok(list);

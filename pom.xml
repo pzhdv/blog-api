@@ -94,6 +94,11 @@
             <artifactId>knife4j-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
         </dependency>
+        <!--去除Jackson Kotlin 警告-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+        </dependency>
         <!--spring-boot测试-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
