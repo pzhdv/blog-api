@@ -17,12 +17,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * knife4j接口文档路径:http://ip:port/doc.html
+ * Knife4j接口文档配置类（增强版Swagger）
+ * <p>
+ * 核心功能：
+ * 1. 基于Swagger/OAS 3.0规范构建接口文档，适配Knife4j增强UI；
+ * 2. 支持通过YML配置文件动态注入文档基础信息（标题、版本、扫描包等）；
+ * 3. 配置JWT令牌全局鉴权，支持在文档页面携带Token调试接口；
+ * 4. 支持开关控制（enableSwagger），适配开发/生产环境动态启停文档。
+ * <p>
+ * 访问地址：http://{部署IP}:{服务端口}/doc.html
+ * 配置说明：
+ * - 基础信息（标题/版本/联系人）：通过swagger.config.*配置项注入；
+ * - JWT令牌头：通过jwt.header配置项指定（默认Authorization）；
+ * - 扫描范围：通过swagger.config.basePackage指定需生成文档的接口包路径。
  *
  * @author PanZonghui
- * @since 22025-04-24 13:10:16
- * @Version: 1.0
- * @Description Knife4j配置(增强版swagger)
+ * @version 1.0
+ * @since 2025-12-31
+ * @see <a href="https://doc.xiaominfo.com/docs/knife4j">Knife4j官方文档</a>
  */
 @Configuration
 public class Knife4jConfig {
@@ -107,7 +119,7 @@ public class Knife4jConfig {
     @Bean
     public Docket createRestApi() {
         return new Docket(DocumentationType.OAS_30)
-                .host(hostName)// 主机名
+                //.host(hostName)// 主机名
                 .enable(enableSwagger) // 定义是否开启swagger，false为关闭，可以通过变量控制
                 .apiInfo(apiInfo()) // apiInfo()：配置 API 的一些基本信息，比如：文档标题title，文档描述description，文档版本号version
                 .groupName(groupName)

@@ -17,17 +17,7 @@ import java.util.List;
  */
 public interface ArticleService extends IService<Article> {
 
-    List<Article> queryArticleList();
-
-    Page<Article> queryArticleListByConditionPage(String title, Boolean publishState, Date startDate, Date endDate, String excerptKeyWorld, Integer recommendWeight, Integer pageNum, Integer pageSize);
-
     Article queryArticleById(Integer articleId);
-
-    boolean saveArticle(Article article);
-
-    boolean updateArticle(Article article);
-
-    boolean deleteArticleById(Integer articleId);
 
     Long queryArticleTotal(Boolean publishState);
 

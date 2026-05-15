@@ -1,14 +1,29 @@
+# ========================= 应用基础配置 =========================
+# 应用服务 WEB 访问端口
 server:
   port: 8080
+  tomcat:
+    max-swallow-size: -1 # 关闭Tomcat对大请求的限制（默认2MB）
+    max-http-form-post-size: -1  # 不限制表单提交大小
   servlet:
-    context-path: /api  # 注意前缀的斜杠，代表根路径下的子路径
+    context-path: /blogApi    # 注意前缀的斜杠，代表根路径下的子路径
 
+# ========================= Spring 基础配置 =========================
 spring:
-  resources:
-    add-mappings: true # 值为false时，不会将静态资源的URL路径添加到映射中
-  # 解决springboot配置@ControllerAdvice不能捕获Exception问题
+  application:
+    name: blog-api  # 应用名称（日志文件名、服务发现、监控等）
+  # 激活的环境配置（默认开发环境，可通过启动参数覆盖：--spring.profiles.active=prod）
+  profiles:
+    active: prod
+
+  #  resources:
+  #    add-mappings: false # 值为false时，不会将静态资源的URL路径添加到映射中，使404能走全局异常
+
+  # Spring MVC 配置：修复 SpringFox 3.0.0 与 Spring Boot 2.6+ 的兼容性问题
   mvc:
-    throw-exception-if-no-handler-found: true
+    pathmatch:
+      matching-strategy: ant_path_matcher  # 使用 AntPathMatcher 替代默认的 PathPatternParser
+    throw-exception-if-no-handler-found: true # 解决springboot配置@ControllerAdvice不能捕获Exception问题
 
   # 配置日期格式化
   jackson:
@@ -16,106 +31,50 @@ spring:
     time-zone: GMT+8 #时区修改为东8区
     default-property-inclusion: non_null #null时不序列化
 
-  datasource:
-    #配置基本属性
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    # 批量修改会出现;报错 加上&allowMultiQueries=true即可解决
-    url: jdbc:mysql://localhost:3306/pzh_blog?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
-    #使用druid连接池
-    type: com.alibaba.druid.pool.DruidDataSource
-    #druid相关配置
-    druid:
-      # 连接保活配置
-      keep-alive: true  # 开启连接保活检测
-      validation-query: SELECT 1  # 必须配置简单有效的检测SQL
-      test-while-idle: true  # 空闲时检测连接
-      test-on-borrow: true  # 借用时检测
-      time-between-eviction-runs-millis: 30000  # 检测周期改为30秒 一个连接在池中最小生存的时间
-      min-evictable-idle-time-millis: 600000  # 最小空闲时间改为10分钟 间隔多久进行一次检测，检测需要关闭的空闲连接
+  servlet:
+    multipart:
+      # 单文件上传最大大小，默认1Mb
+      max-file-size: 10MB
+      # 多文件上传时最大大小,默认10Mb
+      max-request-size: 100MB
 
-      # 连接泄漏检测
-      remove-abandoned: true
-      remove-abandoned-timeout: 300  # 300秒未关闭的连接会被回收
-      log-abandoned: true  # 记录泄漏日志
+# ========================= 自定义应用配置 =========================
+app:
+  # 业务代码基础包名（用于日志、Swagger等配置）
+  base-package: cn.pzhdv.blog
 
-      #监控统计拦截的filters
-      filters: stat
-      #配置初始化大小/最小/最大
-      initial-size: 5
-      min-idle: 10
-      max-active: 20
-      #获取连接等待超时时间
-      max-wait: 60000
-      test-on-return: false
-      #打开PSCache，并指定每个连接上PSCache的大小。oracle设为true，mysql设为false。分库分表较多推荐设置为false
-      pool-prepared-statements: false
-      max-pool-prepared-statement-per-connection-size: 20
-
-  redis:
-    database: 0 #使用第0个数据库，一共默认有16个(0-15)
-    host: 127.0.0.1
-    port: 6379
-    password: 123456
-    timeout: 60s #连接超时时间毫秒(类型为Duration，添加秒)
-    lettuce:
-      pool:
-        max-active: 16 #连接池最大连接数（使用负值表示没有限制）
-        max-idle: 8 #连接池中的最大空闲连接
-        min-idle: 4 #连接池中的最小空闲连接
-        max-wait: 120s #最大建立连接等待时间。如果超过此时间将接到异常。设为-1表示无限制。
-        time-between-eviction-runs: 30s #空闲链接检测线程检测周期毫秒（负值表示不检测）(类型为Duration，添加秒)
-
+# ========================= MyBatis-Plus 配置 =========================
 mybatis-plus:
+  # Mapper XML 文件位置
+  mapper-locations: classpath:mapper/*.xml
+  # 实体类包路径
+  type-aliases-package: ${app.base-package}.entity
   configuration:
     # 开启驼峰命名规则映射 例如实体类userName字段关联表中user_name的列
     map-underscore-to-camel-case: true
-    auto-mapping-behavior: full
-    #输出sql到控制台
-    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-    #如果查询结果中包含空值的列，则 MyBatis 在映射的时候，不会映射这个字段
-    call-setters-on-nulls: true
-  type-aliases-package: cn.pzhdv.blog.entity  # 实体类所在包
-  mapper-locations: classpath*:mapper/**/*Mapper.xml   # xml文件所在位置
-  global-config:
-    # 逻辑删除配置
-    db-config:
-      # 表名前缀，全局配置后可省略@TableName("tb_user")配置
-      # table-prefix: tb_
-      # 逻辑删除 在实体类上的对应字段上使用这个注解 @TableLogic
-      #配置逻辑删除字段为0是未删除
-      logic-not-delete-value: 0
-      #配置逻辑删除字段为1是删除
-      logic-delete-value: 1
 
-knife4j:
-  # 开启增强配置
-  enable: true
-  # 开启Swagger的Basic认证功能,默认是false
-  basic:
-    enable: true
-    # Basic认证用户名
-    username: pzh
-    # Basic认证密码
-    password: pzh
+# ========================= 日志基础配置 =========================
+# 说明：仅保留简单配置，详细配置由 logback-spring.xml 完成
+logging:
+  level:
+    root: INFO
+  file:
+    name: logs/application.log
 
-
+# ========================= Swagger/Knife4j 配置 =========================
 swagger:
   config:
+    # hostName: 127.0.0.1:8080
     groupName: 个人博客接口
     title: 后端 API 接口文档
-    description: 这是pzh博客后端接口
+    description: 个人博客系统后端所有接口文档，包含作者、文章、分类、等业务接口
     name: 潘宗晖
-    url: https://pzhdv.cn
-    serviceUrl: https://pzhdv.cn #组织url
+    url: https://www.pzhdv.cn
+    serviceUrl: https://www.pzhdv.cn
     email: 1939673715@qq.com
     version: 1.0
-    basePackage: cn.pzhdv.blog.controller
+    basePackage: ${app.base-package}.controller
     enableSwagger: true
 
-
-# 日志目录
-logging:
-  file:
-    path: logs/
+knife4j:
+  enable: true

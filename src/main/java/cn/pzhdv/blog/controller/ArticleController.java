@@ -10,9 +10,10 @@ import cn.pzhdv.blog.service.ArticleService;
 import cn.pzhdv.blog.utils.DateUtils;
 import cn.pzhdv.blog.utils.RedisUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.annotations.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -27,19 +28,19 @@ import java.util.List;
  * @since 2025-06-25 21:08:59
  */
 @Slf4j
-@Api(tags = "Article模块")
+@Api(tags = "文章模块")
 @RestController
 @RequestMapping("/article")
+@RequiredArgsConstructor
 public class ArticleController {
 
-    @Autowired
-    private ArticleService service;
-    @Autowired
-    private RedisUtils redisUtils;
+    private final ArticleService service;
+
+    private final RedisUtils redisUtils;
 
     @ApiOperation(value = "查询文章条总数", notes = "查询文章条总数,去除草稿文章", httpMethod = "GET", produces = "application/json")
     @RequestMapping(value = "total", method = RequestMethod.GET)
-    public Result queryArticleTotal() {
+    public Result<Long> queryArticleTotal() {
         // 先从 Redis 中获取缓存数据
         String redisKey = RedisKey.ARTICLE_TOTAL_KEY;
         Long articleTotal = redisUtils.get(redisKey, Long.class);
@@ -57,10 +58,11 @@ public class ArticleController {
 
     @ApiOperation(value = "查询文章发布时间列表", notes = "查询文章发布时间,去除草稿文章", httpMethod = "GET", produces = "application/json")
     @RequestMapping(value = "publishDateList", method = RequestMethod.GET)
-    public Result articlePublishDateList() {
+    public Result<List<Date>> articlePublishDateList() {
         // 先从 Redis 中获取缓存数据
         String redisKey = RedisKey.ARTICLE_PUBLISH_DATE_LIST_KEY;
-        List<Date> dates = redisUtils.get(redisKey, List.class);
+        List<Date> dates = redisUtils.get(redisKey, new TypeReference<>() {
+        });
 
         if (dates == null) {
             dates = service.queryArticlePublishDateList(true);
@@ -78,17 +80,17 @@ public class ArticleController {
             @ApiImplicitParam(name = "pageSize", value = "页大小", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),
     })
     @RequestMapping(value = "mobileHomePageArticleList", method = RequestMethod.GET)
-    public Result getMobileHomePageArticleList(
+    public Result<Page<Article>> getMobileHomePageArticleList(
             @RequestParam(value = "publishDateStr", required = false) String publishDateStr,
             @RequestParam(value = "articleTagId", required = false) Integer articleTagId,
-            @RequestParam(value = "pageNum", defaultValue = "0") Integer pageNum,
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         Date publishDate = null;
         if (publishDateStr != null && !publishDateStr.isEmpty()) {
             try {
                 publishDate = DateUtils.parseDate(publishDateStr);
             } catch (Exception e) {
-                return ResultUtil.error(ResultCode.QUERY_FAIL.code(), "无效的日期格式. 请使用 'yyyy-MM-dd");
+                return ResultUtil.error(ResultCode.QUERY_FAIL.getCode(), "无效的日期格式. 请使用 'yyyy-MM-dd");
             }
         }
         // 构建缓存键
@@ -99,7 +101,8 @@ public class ArticleController {
                 ":pageSize=" + pageSize;
 
         // 先从 Redis 中获取缓存数据
-        Page<Article> page = redisUtils.get(redisKey, Page.class);
+        Page<Article> page = redisUtils.get(redisKey, new TypeReference<>() {
+        });
         if (page == null) {
             // 如果 Redis 中没有缓存数据，则查询数据库
             page = service.queryMobileHomePageArticleList(publishDate, articleTagId, pageNum, pageSize, true);
@@ -118,9 +121,9 @@ public class ArticleController {
             @ApiImplicitParam(name = "pageSize", value = "页大小", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),
     })
     @RequestMapping(value = "mobileCategoryPageArticleList", method = RequestMethod.GET)
-    public Result getMobileCategoryPageArticleList(
+    public Result<Page<Article>> getMobileCategoryPageArticleList(
             @RequestParam(value = "categoryIds", required = false) List<Integer> categoryIds,
-            @RequestParam(value = "pageNum", defaultValue = "0") Integer pageNum,
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         // 构建缓存键
         String redisKey = RedisKey.ARTICLE_CATEGORY_PAGE_LIST_KEY +
@@ -129,7 +132,8 @@ public class ArticleController {
                 ":pageSize=" + pageSize;
 
         // 先从 Redis 中获取缓存数据
-        Page<Article> page = redisUtils.get(redisKey, Page.class);
+        Page<Article> page = redisUtils.get(redisKey, new TypeReference<>() {
+        });
         if (page == null) {
             // 如果 Redis 中没有缓存数据，则查询数据库
             page = service.queryMobileCategoryPageArticleList(categoryIds, pageNum, pageSize, true);
@@ -147,7 +151,7 @@ public class ArticleController {
             @ApiImplicitParam(name = "articleId", value = "文章Id", required = true, dataType = "Integer", dataTypeClass = Integer.class)
     })
     @RequestMapping(value = "articleDetailById", method = RequestMethod.GET)
-    public Result queryArticleDetailById(@RequestParam(value = "articleId", required = true) Integer articleId) {
+    public Result<Article> queryArticleDetailById(@RequestParam(value = "articleId") Integer articleId) {
         // 先从 Redis 中获取缓存数据
         String redisKey = RedisKey.ARTICLE_DETAIL_KEY + articleId;
         Article article = redisUtils.get(redisKey, Article.class);

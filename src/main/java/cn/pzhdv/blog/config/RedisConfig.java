@@ -1,9 +1,9 @@
 package cn.pzhdv.blog.config;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,43 +12,53 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-
 /**
+ * Redis 配置类
+ * 纯 JSON 序列化，无类型信息，100% 安全，无反序列化漏洞
+ *
  * @author PanZonghui
- * @since 2025-04-24 13:10:16
- * @Version: 1.0
- * @Description
  */
 @Configuration
 @EnableCaching
 public class RedisConfig {
 
-    @Bean(name = "redisTemplate")
-    @SuppressWarnings("all")
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        // 我们为了自己开发方便，一般直接使用 <String, Object>
+    /**
+     * 定义统一的 ObjectMapper Bean
+     * 这样 Spring 会自动管理它的生命周期，并可以被 RedisUtils 注入
+     */
+    @Bean(name = "redisObjectMapper") // 显式命名
+    public ObjectMapper redisObjectMapper() {
+        // 配置 ObjectMapper（支持时间、兼容扩展字段）
+        ObjectMapper objectMapper = new ObjectMapper();
+        // 支持 Java 8 / JDK17 时间类型（LocalDateTime等）
+        objectMapper.registerModule(new JavaTimeModule());
+        // 遇到未知属性不报错（项目扩展字段时兼容）
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return objectMapper;
+    }
+
+    /**
+     * RedisTemplate 配置（安全、通用、生产推荐）
+     */
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory, @Qualifier("redisObjectMapper") ObjectMapper redisObjectMapper) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(connectionFactory);
 
-        // //json序列化配置
-        Jackson2JsonRedisSerializer<Object> j2rs = new Jackson2JsonRedisSerializer<>(Object.class);
-        ObjectMapper om = new ObjectMapper();
-        om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        om.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
-        j2rs.setObjectMapper(om);
+        // ==================== Key / HashKey 序列化 ====================
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+        redisTemplate.setKeySerializer(stringSerializer);
+        redisTemplate.setHashKeySerializer(stringSerializer);
 
-        // String 的序列化
-        StringRedisSerializer srs = new StringRedisSerializer();
+        // ==================== Value / HashValue 序列化 ====================
+        // 纯 JSON 序列化，不存储 Java 类名 → 无安全漏洞
+        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(Object.class);
 
-        //key采用String序列化方式
-        redisTemplate.setKeySerializer(srs);
-        //hash的key采用String的序列化方式
-        redisTemplate.setHashKeySerializer(srs);
-        //value序列化方式采用jackson
-        redisTemplate.setValueSerializer(j2rs);
-        //hash的value序列化方式采用jackson
-        redisTemplate.setHashValueSerializer(j2rs);
-        //必须执行这个函数,初始化RedisTemplate
+        jsonSerializer.setObjectMapper(redisObjectMapper);
+        redisTemplate.setValueSerializer(jsonSerializer);
+        redisTemplate.setHashValueSerializer(jsonSerializer);
+
+        // 初始化完成
         redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }

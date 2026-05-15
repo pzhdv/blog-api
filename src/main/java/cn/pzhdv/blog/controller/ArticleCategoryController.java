@@ -4,13 +4,12 @@ package cn.pzhdv.blog.controller;
 import cn.pzhdv.blog.constant.RedisKey;
 import cn.pzhdv.blog.entity.ArticleCategory;
 import cn.pzhdv.blog.result.Result;
-import cn.pzhdv.blog.result.ResultCode;
 import cn.pzhdv.blog.result.ResultUtil;
 import cn.pzhdv.blog.service.ArticleCategoryService;
 import cn.pzhdv.blog.utils.RedisUtils;
-import com.github.xiaoymin.knife4j.annotations.ApiOperationSupport;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.annotations.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,19 +22,20 @@ import java.util.List;
  * @author PanZonghui
  * @since 2025-06-25 21:03:51
  */
-@Api(tags = "ArticleCategory模块")
+@Api(tags = "文章分类模块")
 @RestController
 @RequestMapping("/articleCategory")
+@RequiredArgsConstructor
 public class ArticleCategoryController {
 
-    @Autowired
-    private ArticleCategoryService service;
-    @Autowired
-    private RedisUtils redisUtils;
+
+    private final ArticleCategoryService service;
+
+    private final RedisUtils redisUtils;
 
     @ApiOperation(value = "查询分类条总数", notes = "查询分类条总数", httpMethod = "GET", produces = "application/json")
     @RequestMapping(value = "total", method = RequestMethod.GET)
-    public Result articleCategoryTotal() {
+    public Result<Long> articleCategoryTotal() {
         // 先从 Redis 中获取缓存数据
         String redisKey = RedisKey.ARTICLE_CATEGORY_TOTAL_KEY;
         Long articleCategoryTotal = redisUtils.get(redisKey, Long.class);
@@ -50,13 +50,14 @@ public class ArticleCategoryController {
 
     @ApiOperation(value = "查询分类列表", notes = "查询分类列表、包含该分类下的文章总条数", httpMethod = "GET", produces = "application/json")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "parentId", value = "分类根节点ID", defaultValue = "0", required = false, dataType = "Integer", dataTypeClass = Integer.class)
+            @ApiImplicitParam(name = "parentId", value = "分类根节点ID", defaultValue = "0", dataType = "Integer", dataTypeClass = Integer.class)
     })
     @RequestMapping(value = "categoryListWithArticleCount", method = RequestMethod.GET)
-    public Result getCategoryListWithArticleCount(@RequestParam(value = "parentId", defaultValue = "0", required = false) Integer parentId) {
+    public Result<List<ArticleCategory>> getCategoryListWithArticleCount(@RequestParam(value = "parentId", defaultValue = "0", required = false) Integer parentId) {
         // 先从 Redis 中获取缓存数据
         String redisKey = RedisKey.ARTICLE_CATEGORY_LIST_KEY + ":parentId=" + parentId;
-        List<ArticleCategory> list = redisUtils.get(redisKey, List.class);
+        List<ArticleCategory> list = redisUtils.get(redisKey, new TypeReference<>() {
+        });
         if (list == null) {
             list = service.queryArticleCategoryListAndArticleTotal(parentId);
             redisUtils.set(redisKey, list);

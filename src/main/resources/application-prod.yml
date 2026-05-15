@@ -1,0 +1,91 @@
+# ========================= 生产环境配置 =========================
+# 说明：生产环境特定配置，包括生产数据库、Redis、生产日志级别等
+# 注意：生产环境敏感信息建议使用环境变量或配置中心管理
+
+spring:
+  # ========================= 数据源配置（生产环境） =========================
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 生产环境数据库连接（建议使用环境变量：${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME}）
+    url: jdbc:mysql://${DB_HOST:117.72.63.33}:${DB_PORT:3306}/${DB_NAME:pzh_blog}?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&useServerPrepStmts=true&cachePrepStmts=true&prepStmtCacheSize=250&prepStmtCacheSqlLimit=2048
+    username: ${DB_USERNAME:smallhui}
+    password: ${DB_PASSWORD:PanZonghui@123}
+    # HikariCP 连接池配置（生产环境）
+    hikari:
+      # ========================= 连接池核心配置 =========================
+      # 生产环境建议根据实际并发量调整
+      minimum-idle: 10
+      maximum-pool-size: 50
+      pool-name: BlogHikariCP-Prod
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # ========================= 连接验证配置 =========================
+      validation-timeout: 3000
+      # ========================= 连接泄漏检测 =========================
+      # 生产环境关闭连接泄漏检测，避免性能影响
+      leak-detection-threshold: 0
+      # ========================= 性能优化配置 =========================
+      auto-commit: false
+      read-only: false
+      # ========================= 监控和统计 =========================
+      register-mbeans: true
+      # 企业级：连接池监控配置
+      connection-test-query: SELECT 1
+
+  # ========================= Redis 配置（生产环境） =========================
+  redis:
+    database: ${REDIS_DATABASE:9}
+    host: ${REDIS_HOST:117.72.63.33}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:pzh123456}
+    # 企业级：生产环境建议配置连接池和超时
+    timeout: 3000ms  # 连接超时时间
+    lettuce:
+      pool:
+        max-active: 20  # 最大连接数
+        max-idle: 10  # 最大空闲连接
+        min-idle: 5  # 最小空闲连接
+        max-wait: 3000ms  # 最大等待时间
+      shutdown-timeout: 100ms  # 关闭超时时间
+    # 企业级：Redis集群配置（如果使用集群模式）
+    # cluster:
+    #   nodes: ${REDIS_CLUSTER_NODES:127.0.0.1:6379,127.0.0.1:6380}
+    #   max-redirects: 3
+
+# ========================= 跨域配置（生产环境） =========================
+cors:
+  # 生产环境：允许的前端来源（只保留真实前端端口）
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://www.pzhdv.cn,https://pzhdv.cn,http://localhost:9527,http://localhost:4000}
+  # 允许的请求头
+  allowed-headers: Origin,Content-Type,Accept,Authorization,X-Requested-With,Token,Cookie,x-request-id
+  # 允许的请求方法
+  allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+  # 允许携带 Cookie/Token 凭证
+  allow-credentials: true
+  # 允许前端读取的响应头
+  exposed-headers: Authorization,Refresh-Token
+  # 生产环境：预检请求缓存1小时
+  max-age: 3600
+
+# ========================= Swagger/Knife4j配置（生产环境） =========================
+
+knife4j:
+  basic:
+    enable: true
+    username: ${KNIFE4J_USERNAME:pzh}
+    password: ${KNIFE4J_PASSWORD:pzh}
+
+# ========================= MyBatis-Plus 配置（生产环境） =========================
+mybatis-plus:
+  configuration:
+  # 生产环境关闭SQL日志输出，避免性能影响和敏感信息泄露
+  # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ========================= 日志配置（生产环境） =========================
+logging:
+  level:
+    root: WARN
+    org.springframework: INFO
+    ${app.base-package}: INFO
+

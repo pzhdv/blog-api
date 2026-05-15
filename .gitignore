@@ -1,5 +1,6 @@
 HELP.md
 target/
+logs/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -31,3 +32,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 真实环境配置文件（不提交）
+application-prod.yml
+application-dev.yml

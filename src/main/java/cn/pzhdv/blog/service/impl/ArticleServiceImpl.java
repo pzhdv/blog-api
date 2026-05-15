@@ -7,9 +7,8 @@ import cn.pzhdv.blog.utils.DateUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,26 +25,20 @@ import java.util.stream.Collectors;
  * @since 2025-06-25 21:08:59
  */
 @Service
+@RequiredArgsConstructor
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
 
-    @Autowired
-    private ArticleMapper articleMapper;
-    @Autowired
-    private ArticleTagRelationMapper articleTagRelationMapper;
-    @Autowired
-    private ArticleCategoryRelationMapper articleCategoryRelationMapper;
-    @Autowired
-    private ArticleCategoryMapper articleCategoryMapper;
-    @Autowired
-    private ArticleTagMapper articleTagMapper;
+   
+    private final ArticleMapper articleMapper;
+   
+    private final ArticleTagRelationMapper articleTagRelationMapper;
+   
+    private final ArticleCategoryRelationMapper articleCategoryRelationMapper;
+   
+    private final ArticleCategoryMapper articleCategoryMapper;
+   
+    private final ArticleTagMapper articleTagMapper;
 
-    @Transactional
-    @Override
-    public boolean deleteArticleById(Integer articleId) {
-        articleMapper.deleteById(articleId);
-        deleteArticleRelations(articleId);// 删除关系
-        return true;
-    }
 
     @Override
     public Long queryArticleTotal(Boolean publishState) {
@@ -57,7 +50,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Override
     public List<Date> queryArticlePublishDateList(Boolean publishState) {
         // 指定查询的字段
-        String[] columns = {"update_time"};
+        String[] columns = {"create_time"};
         // 创建查询条件
         QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
         queryWrapper.select(columns);
@@ -67,56 +60,15 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 执行查询，获取文章列表
         List<Article> articles = articleMapper.selectList(queryWrapper);
 
-        // 提取 update_time 字段的值，并将其转换为 List<Date>
-        List<Date> publishDateList = articles.stream()
-                .map(article -> article.getUpdateTime()) // 假设 Article 类中有一个 getUpdateTime 方法
+        // 提取 create_time 字段的值，并将其转换为 List<Date>
+        List<Date> publishDateList;
+        publishDateList = articles.stream()
+                .map(Article::getCreateTime)
                 .collect(Collectors.toList());
 
         return publishDateList;
     }
 
-
-    @Transactional
-    @Override
-    public boolean updateArticle(Article article) {
-        Integer articleId = article.getArticleId();
-
-        articleMapper.updateById(article);
-
-        deleteArticleRelations(articleId);// 删除关系
-
-        List<Integer> categoryIds = article.getCategoryIds();
-        List<Integer> tagIds = article.getTagIds();
-        saveArticleRelations(articleId, categoryIds, tagIds);//重新建立关系
-
-        return true;
-    }
-
-    @Transactional
-    @Override
-    public boolean saveArticle(Article article) {
-        articleMapper.insert(article);
-        List<Integer> categoryIds = article.getCategoryIds();
-        List<Integer> tagIds = article.getTagIds();
-        Integer articleId = article.getArticleId();
-        saveArticleRelations(articleId, categoryIds, tagIds);//建立关系
-        return true;
-    }
-
-    @Override
-    public List<Article> queryArticleList() {
-        QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
-        // 要查询的字段 不全部查
-        String[] columns = {"article_id", "title", "image", "excerpt", "publish_state", "recommend_weight", "update_time"};
-        queryWrapper.select(columns);
-        queryWrapper.orderByDesc("recommend_weight", "update_time");
-        List<Article> articleList = articleMapper.selectList(queryWrapper); // 1、查询文章列表
-        for (Article article : articleList) {
-            setArticleCategories(article);
-            setArticleTags(article);
-        }
-        return articleList;
-    }
 
     @Override
     public Article queryArticleById(Integer articleId) {
@@ -124,75 +76,33 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         if (article == null) {
             return null;
         }
-        setArticleCategories(article);
+//        setArticleCategories(article);
         setArticleTags(article);
         return article;
     }
 
-    @Override
-    public Page<Article> queryArticleListByConditionPage(String title, Boolean publishState, Date startDate, Date endDate, String excerptKeyWorld, Integer recommendWeight, Integer pageNum, Integer pageSize) {
-        // 创建分页对象
-        Page<Article> page = new Page<>(pageNum, pageSize);
-
-        // 创建 QueryWrapper
-        QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
-
-        // 添加排序条件
-        queryWrapper.orderByDesc("recommend_weight").orderByDesc("update_time");
-
-        // 添加查询条件
-        if (title != null && !title.isEmpty()) {
-            queryWrapper.like("title", title);
-        }
-        if (publishState != null) {
-            queryWrapper.eq("publish_state", publishState);
-        }
-        if (startDate != null) {
-            queryWrapper.ge("update_time", startDate);
-        }
-        if (endDate != null) {
-            queryWrapper.le("update_time", endDate);
-        }
-        if (excerptKeyWorld != null && !excerptKeyWorld.isEmpty()) {
-            queryWrapper.like("excerpt", excerptKeyWorld);
-        }
-        if (recommendWeight != null) {
-            queryWrapper.eq("recommend_weight", recommendWeight);
-        }
-
-
-        // 执行分页查询
-        Page<Article> resultPage = articleMapper.selectPage(page, queryWrapper);
-
-        // 封装分类和标签设置逻辑
-        resultPage.convert(article -> {
-            setArticleCategories(article);
-            setArticleTags(article);
-            return article;
-        });
-
-        // 返回分页结果
-        return resultPage;
-    }
 
     @Override
     public Page<Article> queryMobileHomePageArticleList(Date publishDate, Integer articleTagId, Integer pageNum, Integer pageSize, Boolean publishState) {
         // 创建分页对象
         Page<Article> page = new Page<>(pageNum, pageSize);
 
+        // 指定查询的字段
+        String[] columns = {"article_id", "image", "title", "excerpt", "create_time"};
         // 创建 QueryWrapper
         QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select(columns);
 
         // 添加排序条件
-        queryWrapper.orderByDesc("recommend_weight").orderByDesc("update_time").orderByDesc("article_id");
+        queryWrapper.orderByDesc("recommend_weight").orderByDesc("article_id");
 
         // 如果提供了发布日期，则添加发布日期的过滤条件
         if (publishDate != null) {
             // 计算当天的开始时间和结束时间
             Date startOfDay = DateUtils.startOfDay(publishDate);
             Date endOfDay = DateUtils.endOfDay(publishDate);
-            queryWrapper.ge("update_time", startOfDay);
-            queryWrapper.le("update_time", endOfDay);
+            queryWrapper.ge("create_time", startOfDay);
+            queryWrapper.le("create_time", endOfDay);
         }
 
         if (publishState != null) {
@@ -202,20 +112,21 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 如果提供了文章标签 ID，则添加标签过滤条件
         if (articleTagId != null) {
             List<Integer> articleIdList = getArticleIdListByTagId(articleTagId);
-            if (articleIdList != null && !articleIdList.isEmpty()) {
-                queryWrapper.in("article_id", articleIdList);
+            if (articleIdList == null || articleIdList.isEmpty()) {
+                return page;
             }
+            queryWrapper.in("article_id", articleIdList);
         }
 
         // 执行分页查询
         Page<Article> resultPage = articleMapper.selectPage(page, queryWrapper);
 
         // 封装分类和标签设置逻辑
-        resultPage.convert(article -> {
-            setArticleCategories(article);
-            setArticleTags(article);
-            return article;
-        });
+//        resultPage.convert(article -> {
+//            setArticleCategories(article);
+//            setArticleTags(article);
+//            return article;
+//        });
 
         // 返回分页结果
         return resultPage;
@@ -226,22 +137,25 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 创建分页对象
         Page<Article> page = new Page<>(pageNum, pageSize);
 
+        // 指定查询的字段
+        String[] columns = {"article_id", "image", "title", "excerpt", "create_time"};
         // 创建 QueryWrapper
         QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select(columns);
 
         // 添加排序条件
-        queryWrapper.orderByDesc("article_id");
+        queryWrapper.orderByDesc("recommend_weight").orderByDesc("article_id");
 
         if (publishState != null) {
             queryWrapper.eq("publish_state", publishState);
         }
 
         if (categoryIds != null && !categoryIds.isEmpty()) {
-            List<Integer> categoryIdList = getArticleIdListByCategoryIds(categoryIds);
-            if (categoryIdList == null || categoryIdList.isEmpty()) {
+            List<Integer> articleIdList = getArticleIdListByCategoryIds(categoryIds);
+            if (articleIdList == null || articleIdList.isEmpty()) {
                 return page; // 分类下无文章 返回空分页
             }
-            queryWrapper.in("article_id", categoryIdList);
+            queryWrapper.in("article_id", articleIdList);
         }
 
         // 执行分页查询
@@ -250,7 +164,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 封装分类和标签设置逻辑
         resultPage.convert(article -> {
             setArticleCategories(article);
-            setArticleTags(article);
+//            setArticleTags(article);
             return article;
         });
 
@@ -258,48 +172,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         return resultPage;
     }
 
-    /**
-     * 根据文章id建立 【标签、分类】 与文章的关系
-     *
-     * @param articleId
-     * @param categoryIds
-     * @param tagIds
-     */
-    private void saveArticleRelations(Integer articleId, List<Integer> categoryIds, List<Integer> tagIds) {
-        if (categoryIds != null) {
-            for (Integer categoryId : categoryIds) {
-                ArticleCategoryRelation relation = new ArticleCategoryRelation();
-                relation.setArticleId(articleId);
-                relation.setCategoryId(categoryId);
-                articleCategoryRelationMapper.insert(relation);
-            }
-        }
-        if (tagIds != null) {
-            for (Integer tagId : tagIds) {
-                ArticleTagRelation relation = new ArticleTagRelation();
-                relation.setArticleId(articleId);
-                relation.setArticleTagId(tagId);
-                articleTagRelationMapper.insert(relation);
-            }
-        }
-    }
-
-    /**
-     * 根据文章id删除 【标签、分类】 与文章的关系
-     *
-     * @param articleId
-     */
-    private void deleteArticleRelations(Integer articleId) {
-        // 删除标签ArticleTag关系
-        QueryWrapper<ArticleTagRelation> tagRelationQueryWrapper = new QueryWrapper<>();
-        tagRelationQueryWrapper.eq("article_id", articleId);
-        articleTagRelationMapper.delete(tagRelationQueryWrapper);
-
-        // 删除分类ArticleCategory关系
-        QueryWrapper<ArticleCategoryRelation> categoryRelationQueryWrapper = new QueryWrapper<>();
-        categoryRelationQueryWrapper.eq("article_id", articleId);
-        articleCategoryRelationMapper.delete(categoryRelationQueryWrapper);
-    }
 
     /**
      * 设置文章分类
