@@ -71,7 +71,7 @@ public class BlogAuthor implements Serializable {
     @TableField("user_nick")
     private String userNick;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     @ApiModelProperty("生日")
     @TableField("birthday")
     private Date birthday;
