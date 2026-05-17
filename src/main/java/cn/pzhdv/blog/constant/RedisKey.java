@@ -23,7 +23,7 @@ public class RedisKey {
     public static final String ARTICLE_HOME_PAGE_LIST_KEY = "article:home:page:list";
     // 分类页文章列表
     public static final String ARTICLE_CATEGORY_PAGE_LIST_KEY = "article:category:page:list";
-    // 文章详情（带动态ID）
+    // 文章详情
     public static final String ARTICLE_DETAIL_KEY = "article:detail:";
     // 博客作者信息
     public static final String BLOG_AUTHOR_CACHE_KEY = "blog:author:cache";

@@ -3,9 +3,9 @@ package cn.pzhdv.blog.service.impl;
 import cn.pzhdv.blog.entity.JobExperience;
 import cn.pzhdv.blog.mapper.JobExperienceMapper;
 import cn.pzhdv.blog.service.JobExperienceService;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,15 +19,15 @@ import java.util.List;
  * @since 2025-06-25 21:03:51
  */
 @Service
+@RequiredArgsConstructor
 public class JobExperienceServiceImpl extends ServiceImpl<JobExperienceMapper, JobExperience> implements JobExperienceService {
 
-    @Autowired
-    private JobExperienceMapper mapper;
+    private final JobExperienceMapper mapper;
 
     @Override
     public List<JobExperience> queryJobExperienceList() {
-        QueryWrapper<JobExperience> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("id");
+        LambdaQueryWrapper<JobExperience> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(JobExperience::getId);
         return mapper.selectList(wrapper);
     }
 }

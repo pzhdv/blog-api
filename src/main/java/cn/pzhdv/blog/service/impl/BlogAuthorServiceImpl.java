@@ -3,11 +3,13 @@ package cn.pzhdv.blog.service.impl;
 import cn.pzhdv.blog.entity.BlogAuthor;
 import cn.pzhdv.blog.exception.BusinessException;
 import cn.pzhdv.blog.mapper.BlogAuthorMapper;
+import cn.pzhdv.blog.result.ResultCode;
 import cn.pzhdv.blog.service.BlogAuthorService;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 
@@ -20,22 +22,34 @@ import java.util.List;
  * @since 2025-06-25 21:03:51
  */
 @Service
+@RequiredArgsConstructor
 public class BlogAuthorServiceImpl extends ServiceImpl<BlogAuthorMapper, BlogAuthor> implements BlogAuthorService {
 
-    @Autowired
-    private BlogAuthorMapper mapper;
+    private final BlogAuthorMapper blogAuthorMapper;
 
     @Override
     public BlogAuthor queryBlogAuthor() {
-        QueryWrapper<BlogAuthor> queryWrapper = new QueryWrapper();
-        List<BlogAuthor> blogAuthorList = mapper.selectList(queryWrapper);
-        if (blogAuthorList != null && blogAuthorList.size() > 0) {
-            if (blogAuthorList.size() > 1) {
-                throw new BusinessException(9999, "查询用户个人信息表失败,数据不唯一");
-            } else {
-                return blogAuthorList.get(0);
-            }
+        // 使用 LambdaQueryWrapper 避免硬编码字段名，类型安全
+        LambdaQueryWrapper<BlogAuthor> queryWrapper = new LambdaQueryWrapper<>();
+        // 只查询一条即可，无需查询全部，提升性能
+        queryWrapper.last("LIMIT 2");
+
+        List<BlogAuthor> authorList = blogAuthorMapper.selectList(queryWrapper);
+
+        // 集合判空使用 Spring 工具类，更规范
+        if (CollectionUtils.isEmpty(authorList)) {
+            return null;
         }
-        return null;
+
+        // 数据不唯一，抛出业务异常
+        if (authorList.size() > 1) {
+            throw new BusinessException(
+                    ResultCode.DATA_DUPLICATE.getCode(),
+                    ResultCode.DATA_DUPLICATE.message(authorList.size())
+            );
+        }
+
+        // 返回唯一数据
+        return authorList.get(0);
     }
 }

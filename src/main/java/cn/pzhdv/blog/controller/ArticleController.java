@@ -74,13 +74,14 @@ public class ArticleController {
 
     @ApiOperation(value = "条件分页查询 首页", notes = "条件分页查询列表", httpMethod = "GET", produces = "application/json")
     @ApiImplicitParams({
+            @ApiImplicitParam(name = "keyword", value = "标题关键字", paramType = "query", dataType = "String", dataTypeClass = String.class),
             @ApiImplicitParam(name = "publishDateStr", value = "发布日期 yyyy-MM-dd", paramType = "query", dataType = "String", dataTypeClass = String.class),
             @ApiImplicitParam(name = "articleTagId", value = "标签ID", paramType = "query", dataType = "Boolean", dataTypeClass = Integer.class),
             @ApiImplicitParam(name = "pageNum", value = "当前页码", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),
-            @ApiImplicitParam(name = "pageSize", value = "页大小", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),
-    })
+            @ApiImplicitParam(name = "pageSize", value = "页大小", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),})
     @RequestMapping(value = "mobileHomePageArticleList", method = RequestMethod.GET)
     public Result<Page<Article>> getMobileHomePageArticleList(
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "publishDateStr", required = false) String publishDateStr,
             @RequestParam(value = "articleTagId", required = false) Integer articleTagId,
             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
@@ -94,18 +95,14 @@ public class ArticleController {
             }
         }
         // 构建缓存键
-        String redisKey = RedisKey.ARTICLE_HOME_PAGE_LIST_KEY +
-                ":publishDate=" + publishDateStr +
-                ":articleTagId=" + articleTagId +
-                ":pageNum=" + pageNum +
-                ":pageSize=" + pageSize;
+        String redisKey = RedisKey.ARTICLE_HOME_PAGE_LIST_KEY + ":publishDate=" + publishDateStr + ":articleTagId=" + articleTagId + ":pageNum=" + pageNum + ":pageSize=" + pageSize + ":keyword=" + keyword;
 
         // 先从 Redis 中获取缓存数据
         Page<Article> page = redisUtils.get(redisKey, new TypeReference<>() {
         });
         if (page == null) {
             // 如果 Redis 中没有缓存数据，则查询数据库
-            page = service.queryMobileHomePageArticleList(publishDate, articleTagId, pageNum, pageSize, true);
+            page = service.queryMobileHomePageArticleList(keyword, publishDate, articleTagId, pageNum, pageSize, true);
             if (page != null) {
                 // 将查询结果存入 Redis
                 redisUtils.set(redisKey, page);
@@ -115,21 +112,11 @@ public class ArticleController {
     }
 
     @ApiOperation(value = "条件分页查询 分类页面", notes = "条件分页查询列表", httpMethod = "GET", produces = "application/json")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "categoryIds", value = "分类Id列表", paramType = "query", dataType = "List<Integer>", dataTypeClass = List.class),
-            @ApiImplicitParam(name = "pageNum", value = "当前页码", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),
-            @ApiImplicitParam(name = "pageSize", value = "页大小", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),
-    })
+    @ApiImplicitParams({@ApiImplicitParam(name = "categoryIds", value = "分类Id列表", paramType = "query", dataType = "List<Integer>", dataTypeClass = List.class), @ApiImplicitParam(name = "pageNum", value = "当前页码", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class), @ApiImplicitParam(name = "pageSize", value = "页大小", paramType = "query", dataType = "Integer", dataTypeClass = Integer.class),})
     @RequestMapping(value = "mobileCategoryPageArticleList", method = RequestMethod.GET)
-    public Result<Page<Article>> getMobileCategoryPageArticleList(
-            @RequestParam(value = "categoryIds", required = false) List<Integer> categoryIds,
-            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
-            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+    public Result<Page<Article>> getMobileCategoryPageArticleList(@RequestParam(value = "categoryIds", required = false) List<Integer> categoryIds, @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         // 构建缓存键
-        String redisKey = RedisKey.ARTICLE_CATEGORY_PAGE_LIST_KEY +
-                ":categoryIds=" + (categoryIds != null ? categoryIds.toString() : "null") +
-                ":pageNum=" + pageNum +
-                ":pageSize=" + pageSize;
+        String redisKey = RedisKey.ARTICLE_CATEGORY_PAGE_LIST_KEY + ":categoryIds=" + (categoryIds != null ? categoryIds.toString() : "null") + ":pageNum=" + pageNum + ":pageSize=" + pageSize;
 
         // 先从 Redis 中获取缓存数据
         Page<Article> page = redisUtils.get(redisKey, new TypeReference<>() {
@@ -147,9 +134,7 @@ public class ArticleController {
 
 
     @ApiOperation(value = "根据ID查询文章详情", notes = "根据ID查询文章详情", httpMethod = "GET", produces = "application/json")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "articleId", value = "文章Id", required = true, dataType = "Integer", dataTypeClass = Integer.class)
-    })
+    @ApiImplicitParams({@ApiImplicitParam(name = "articleId", value = "文章Id", required = true, dataType = "Integer", dataTypeClass = Integer.class)})
     @RequestMapping(value = "articleDetailById", method = RequestMethod.GET)
     public Result<Article> queryArticleDetailById(@RequestParam(value = "articleId") Integer articleId) {
         // 先从 Redis 中获取缓存数据
@@ -165,4 +150,3 @@ public class ArticleController {
     }
 
 }
-

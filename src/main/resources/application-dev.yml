@@ -38,7 +38,7 @@ spring:
 # ========================= 跨域配置（开发环境） =========================
 cors:
   # 允许的前端来源（只保留真实前端端口）
-  allowed-origins: http://localhost:4000,http://localhost:4000
+  allowed-origins: https://www.pzhdv.cn,http://localhost:9527,http://localhost:4000
   # 允许的请求头
   allowed-headers: Origin,Content-Type,Accept,Authorization,X-Requested-With,Token,Cookie,x-request-id
   # 允许的请求方法
@@ -47,8 +47,8 @@ cors:
   allow-credentials: true
   # 允许前端读取的响应头
   exposed-headers: Authorization,Refresh-Token
-  # 预检请求缓存时间
-  max-age: 1
+  # 预检请求缓存时间 1小时
+  max-age: 3600
 
 # ========================= Swagger/Knife4j配置（开发环境） =========================
 

@@ -28,7 +28,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ArticleCategoryController {
 
-
     private final ArticleCategoryService service;
 
     private final RedisUtils redisUtils;
@@ -59,7 +58,7 @@ public class ArticleCategoryController {
         List<ArticleCategory> list = redisUtils.get(redisKey, new TypeReference<>() {
         });
         if (list == null) {
-            list = service.queryArticleCategoryListAndArticleTotal(parentId);
+            list = service.queryCategoryTreeWithCount(parentId);
             redisUtils.set(redisKey, list);
         }
         return ResultUtil.ok(list);

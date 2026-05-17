@@ -86,6 +86,6 @@ mybatis-plus:
 logging:
   level:
     root: WARN
-    org.springframework: INFO
+    org.springframework: ERROR
     ${app.base-package}: INFO
 

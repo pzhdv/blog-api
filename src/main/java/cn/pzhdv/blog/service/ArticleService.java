@@ -23,7 +23,7 @@ public interface ArticleService extends IService<Article> {
 
     List<Date> queryArticlePublishDateList(Boolean publishState);
 
-    Page<Article> queryMobileHomePageArticleList(Date publishDate, Integer articleTagId, Integer pageNum, Integer pageSize, Boolean publishState);
+    Page<Article> queryMobileHomePageArticleList(String keyword, Date publishDate, Integer articleTagId, Integer pageNum, Integer pageSize, Boolean publishState);
 
     Page<Article> queryMobileCategoryPageArticleList(List<Integer> categoryIds, Integer pageNum, Integer pageSize, Boolean publishState);
 }

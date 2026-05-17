@@ -3,11 +3,13 @@ package cn.pzhdv.blog.service.impl;
 import cn.pzhdv.blog.entity.BlogMission;
 import cn.pzhdv.blog.exception.BusinessException;
 import cn.pzhdv.blog.mapper.BlogMissionMapper;
+import cn.pzhdv.blog.result.ResultCode;
 import cn.pzhdv.blog.service.BlogMissionService;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 
@@ -20,22 +22,32 @@ import java.util.List;
  * @since 2025-06-25 21:03:51
  */
 @Service
+@RequiredArgsConstructor
 public class BlogMissionServiceImpl extends ServiceImpl<BlogMissionMapper, BlogMission> implements BlogMissionService {
 
-    @Autowired
-    private BlogMissionMapper mapper;
+    private final BlogMissionMapper blogMissionMapper;
 
     @Override
     public BlogMission queryBlogMission() {
-        QueryWrapper<BlogMission> queryWrapper = new QueryWrapper();
-        List<BlogMission> blogMissionList = mapper.selectList(queryWrapper);
-        if (blogMissionList != null && blogMissionList.size() > 0) {
-            if (blogMissionList.size() > 1) {
-                throw new BusinessException(9999, "查询博客信息表失败,数据不唯一");
-            } else {
-                return blogMissionList.get(0);
-            }
+        LambdaQueryWrapper<BlogMission> queryWrapper = new LambdaQueryWrapper<>();
+        // 性能优化：只查最多2条，判断是否重复即可
+        queryWrapper.last("LIMIT 2");
+
+        List<BlogMission> missionList = blogMissionMapper.selectList(queryWrapper);
+
+        // 空数据返回null
+        if (CollectionUtils.isEmpty(missionList)) {
+            return null;
         }
-        return null;
+
+        // 数据不唯一，抛出规范异常
+        if (missionList.size() > 1) {
+            throw new BusinessException(
+                    ResultCode.DATA_DUPLICATE.getCode(),
+                    ResultCode.DATA_DUPLICATE.message(missionList.size())
+            );
+        }
+
+        return missionList.get(0);
     }
 }
